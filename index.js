@@ -106,3 +106,18 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ error: "로그인 실패" });
   }
 });
+
+// 회원정보 조회
+app.get("/profile", (req, res) => {
+  const { token } = req.cookies;
+  console.log("쿠키", token);
+  if (!token) {
+    return res.json({ error: "로그인 필요" });
+  }
+  jwt.verify(token, secretKey, (err, info) => {
+    if (err) {
+      return res.json({ error: "로그인 필요" });
+    }
+    res.json(info);
+  });
+});
