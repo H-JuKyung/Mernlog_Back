@@ -44,6 +44,7 @@ import jwt from "jsonwebtoken";
 const secretKey = process.env.JWT_SECRET;
 const tokenLife = process.env.JWT_EXPIRATION;
 
+// 회원가입
 app.post("/register", async (req, res) => {
   try {
     console.log("----", req.body);
@@ -66,7 +67,42 @@ app.post("/register", async (req, res) => {
       id: savedUser.id,
     });
   } catch (err) {
-    console.log("에러", err);
-    res.status(500).json({ error: "서버 에러" });
+    console.log("회원가입 오류: ", err);
+    res.status(500).json({ error: "회원가입 실패" });
+  }
+});
+
+// 로그인
+app.post("/login", async (req, res) => {
+  try {
+    const { id, password } = req.body;
+    const userDoc = await userModel.findOne({ id });
+    if (!userDoc) {
+      return res.status(401).json({ error: "없는 사용자입니다." });
+    }
+
+    const passOk = bcrypt.compareSync(password, userDoc.password);
+    if (!passOk) {
+      return res.status(401).json({ error: "비밀번호가 틀렸습니다" });
+    } else {
+      const { _id, id } = userDoc;
+      const payload = { id: _id, id };
+      const token = jwt.sign(payload, secretKey, {
+        expiresIn: tokenLife,
+      });
+
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          maxAge: 1000 * 60 * 60,
+        })
+        .json({
+          id: userDoc._id,
+          id,
+        });
+    }
+  } catch (err) {
+    console.log("로그인 오류: ", err);
+    res.status(500).json({ error: "로그인 실패" });
   }
 });
