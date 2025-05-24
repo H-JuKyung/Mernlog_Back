@@ -5,17 +5,11 @@ import express from "express";
 const app = express();
 const port = process.env.PORT;
 
-app.listen(port, () => {
-  console.log(`서버 실행 중: http://localhost:${port}`);
-});
-
 import cors from "cors";
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -43,6 +37,14 @@ const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS);
 import jwt from "jsonwebtoken";
 const secretKey = process.env.JWT_SECRET;
 const tokenLife = process.env.JWT_EXPIRATION;
+
+const cookieOptions = {
+  httpOnly: true,
+  maxAge: 1000 * 60 * 60,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  path: "/",
+};
 
 // 회원가입
 app.post("/register", async (req, res) => {
@@ -91,15 +93,10 @@ app.post("/login", async (req, res) => {
         expiresIn: tokenLife,
       });
 
-      res
-        .cookie("token", token, {
-          httpOnly: true,
-          maxAge: 1000 * 60 * 60,
-        })
-        .json({
-          id: userDoc._id,
-          id,
-        });
+      res.cookie("token", token, cookieOptions).json({
+        id: userDoc._id,
+        id,
+      });
     }
   } catch (err) {
     console.log("로그인 오류: ", err);
@@ -120,4 +117,20 @@ app.get("/profile", (req, res) => {
     }
     res.json(info);
   });
+});
+
+// 로그아웃
+app.post("/logout", (req, res) => {
+  const logoutCookieOptions = {
+    ...cookieOptions,
+    maxAge: 0,
+  };
+
+  res
+    .cookie("token", "", logoutCookieOptions)
+    .json({ message: "로그아웃 되었음" });
+});
+
+app.listen(port, () => {
+  console.log(`서버 실행 중: http://localhost:${port}`);
 });
