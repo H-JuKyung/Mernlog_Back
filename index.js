@@ -121,3 +121,13 @@ app.get("/profile", (req, res) => {
     res.json(info);
   });
 });
+
+// 로그아웃
+app.post("/logout", (req, res) => {
+  res
+    .cookie("token", "", {
+      httpOnly: true,
+      maxAge: 0, // 쿠키 만료
+    })
+    .json({ message: "로그아웃 되었음" });
+});
