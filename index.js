@@ -242,7 +242,7 @@ app.get("/post/:postId", async (req, res) => {
   }
 });
 
-//글 삭제
+// 글 삭제
 app.delete("/post/:postId", async (req, res) => {
   try {
     const { postId } = req.params;
@@ -254,6 +254,63 @@ app.delete("/post/:postId", async (req, res) => {
   } catch (err) {
     console.error("게시물 삭제 오류:", err);
     res.status(500).json({ error: "게시물 삭제에 실패했습니다." });
+  }
+});
+
+// 글 수정
+app.put("/post/:postId", upload.single("files"), async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { title, summary, content } = req.body;
+    const { token } = req.cookies;
+
+    // 로그인 확인
+    if (!token) {
+      return res.status(401).json({ error: "로그인 필요" });
+    }
+
+    // 토큰 검증
+    const userInfo = jwt.verify(token, secretKey);
+
+    // 게시물 조회
+    const post = await postModel.findById(postId);
+
+    // 게시물이 존재하지 않을 경우
+    if (!post) {
+      return res.status(404).json({ error: "게시물을 찾을 수 없습니다." });
+    }
+
+    // 작성자 확인 (자신의 글만 수정 가능)
+    if (post.author !== userInfo.id) {
+      return res.status(403).json({ error: "자신의 글만 수정할 수 있습니다." });
+    }
+
+    // 수정할 데이터 객체 생성
+    const updateData = {
+      title,
+      summary,
+      content,
+    };
+
+    // 새 파일이 업로드된 경우 파일 경로 업데이트
+    if (req.file) {
+      updateData.cover = req.file.path;
+    }
+
+    // 게시물 업데이트
+    const updatedPost = await postModel.findByIdAndUpdate(
+      postId,
+      updateData,
+      { new: true } // 업데이트된 문서 반환
+    );
+
+    res.json({
+      message: "게시물이 수정되었습니다.",
+      post: updatedPost,
+    });
+  } catch (err) {
+    console.error("게시물 수정 오류:", err);
+    res.status(500).json({ error: "게시물 수정에 실패했습니다." });
   }
 });
 
