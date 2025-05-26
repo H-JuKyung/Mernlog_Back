@@ -23,7 +23,7 @@ const postSchema = new Schema(
       required: true,
     },
     likes: {
-      type: [String],
+      type: [{ type: Schema.Types.ObjectId, ref: "User" }],
       default: [],
       required: false,
     },
@@ -33,4 +33,4 @@ const postSchema = new Schema(
   }
 );
 
-export const postModel = model("Post", postSchema);
+export const Post = model("Post", postSchema);
