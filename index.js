@@ -408,6 +408,58 @@ app.delete("/comments/:commentId", async (req, res) => {
   }
 });
 
+// 댓글 조회
+app.get("/comments/:postId", async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    const comments = await commentModel
+      .find({ postId })
+      .sort({ createdAt: -1 });
+    res.json(comments);
+  } catch (error) {
+    console.error("댓글 목록 조회 오류:", error);
+    res.status(500).json({ error: "댓글 목록 조회에 실패했습니다." });
+  }
+});
+
+// 댓글 수정
+app.put("/comments/:commentId", async (req, res) => {
+  const { commentId } = req.params;
+  const { content } = req.body;
+  const { token } = req.cookies;
+
+  try {
+    if (!token) return res.status(401).json({ message: "로그인 필요" });
+
+    const userInfo = jwt.verify(token, secretKey);
+    const comment = await commentModel.findById(commentId);
+    if (!comment)
+      return res.status(404).json({ message: "댓글을 찾을 수 없습니다." });
+
+    if (comment.author !== userInfo.userId) {
+      return res
+        .status(403)
+        .json({ message: "자신의 댓글만 수정할 수 있습니다." });
+    }
+
+    // 업데이트 및 저장
+    comment.content = content;
+    await comment.save();
+
+    res.json(comment);
+  } catch (error) {
+    console.error("댓글 수정 오류:", error);
+    const status = error.name === "JsonWebTokenError" ? 401 : 500;
+    res.status(status).json({
+      message:
+        error.name === "JsonWebTokenError"
+          ? "유효하지 않은 토큰입니다."
+          : "댓글 수정에 실패했습니다.",
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`서버 실행 중: http://localhost:${port}`);
 });
