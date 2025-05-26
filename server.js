@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 
 // 라우트 가져오기
 import authRoutes from "./routes/authRoutes.js";
+import kakaoAuthRoutes from "./routes/kakaoAuthRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -52,6 +53,7 @@ connectDB();
 
 // 라우트 설정
 app.use("/auth", authRoutes); // /auth/register, /auth/login 등
+app.use("/auth/kakao", kakaoAuthRoutes); // /auth/kakao
 app.use("/posts", postRoutes); // /posts, /posts/:postId 등
 app.use("/comments", commentRoutes); // /comments, /comments/:postId 등
 app.use("/users", userRoutes); // /users/:userId, /users/update 등
