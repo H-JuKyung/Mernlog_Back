@@ -131,6 +131,70 @@ app.post("/logout", (req, res) => {
     .json({ message: "로그아웃 되었음" });
 });
 
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { postModel } from "./model/post.js";
+
+import { fileURLToPath } from "url";
+// __dirname 설정 (ES 모듈에서는 __dirname이 기본적으로 제공되지 않음)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// uploads 폴더의 파일들을 /uploads 경로로 제공
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// 정적 파일 접근 시 CORS 오류를 방지하기 위한 설정
+app.get("/uploads/:filename", (req, res) => {
+  const { filename } = req.params;
+  res.sendFile(path.join(__dirname, "uploads", filename));
+});
+
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
+
+app.post("/postWrite", upload.single("files"), async (req, res) => {
+  try {
+    const { title, summary, content } = req.body;
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).json({ error: "로그인 필요" });
+    }
+
+    const userInfo = jwt.verify(token, secretKey);
+
+    const postData = {
+      title,
+      summary,
+      content,
+      cover: req.file ? req.file.path : null, // 파일 경로 저장
+      author: userInfo.id,
+    };
+
+    await postModel.create(postData);
+    console.log("포스트 등록 성공");
+
+    res.json({ message: "포스트 글쓰기 성공" });
+  } catch (err) {
+    console.log("에러", err);
+    return res.status(500).json({ error: "서버 에러" });
+  }
+});
+
 app.listen(port, () => {
   console.log(`서버 실행 중: http://localhost:${port}`);
 });
