@@ -460,6 +460,110 @@ app.put("/comments/:commentId", async (req, res) => {
   }
 });
 
+// 사용자 정보 조회
+app.get("/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await userModel.findOne({ userId }, { password: 0 });
+
+    if (!user) {
+      return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error("사용자 정보 조회 오류:", err);
+    res.status(500).json({ error: "사용자 정보 조회에 실패했습니다." });
+  }
+});
+
+// 사용자가 작성한 글 조회
+app.get("/user/:userId/posts", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const posts = await postModel
+      .find({ author: userId })
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
+  } catch (err) {
+    console.error("사용자 게시물 조회 오류:", err);
+    res.status(500).json({ error: "사용자 게시물 조회에 실패했습니다." });
+  }
+});
+
+// 사용자가 작성한 댓글 조회 API
+app.get("/user/:userId/comments", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const comments = await commentModel
+      .find({ author: userId })
+      .sort({ createdAt: -1 });
+
+    res.json(comments);
+  } catch (err) {
+    console.error("사용자 댓글 조회 오류:", err);
+    res.status(500).json({ error: "사용자 댓글 조회에 실패했습니다." });
+  }
+});
+
+// 사용자가 좋아요 클릭한 글 조회 API
+app.get("/user/:userId/likes", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    // 먼저 사용자 ID 찾기
+    const user = await userModel.findOne({ userId });
+
+    if (!user) {
+      return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
+    }
+
+    // 사용자가 좋아요한 게시물 찾기
+    const likedPosts = await postModel
+      .find({ likes: user._id })
+      .sort({ createdAt: -1 });
+
+    res.json(likedPosts);
+  } catch (err) {
+    console.error("사용자 좋아요 게시물 조회 오류:", err);
+    res
+      .status(500)
+      .json({ error: "사용자 좋아요 게시물 조회에 실패했습니다." });
+  }
+});
+
+// 사용자 정보 수정
+app.put("/user/update", async (req, res) => {
+  try {
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).json({ error: "로그인 필요" });
+    }
+
+    const userInfo = jwt.verify(token, secretKey);
+    const { userId, ...updateData } = req.body;
+
+    // 비밀번호 변경이 있는 경우 해싱
+    if (updateData.password) {
+      updateData.password = bcrypt.hashSync(updateData.password, saltRounds);
+    }
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userInfo.id,
+      updateData,
+      { new: true, select: "-password" }
+    );
+
+    res.json({
+      message: "사용자 정보가 수정되었습니다.",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("사용자 정보 수정 오류:", err);
+    res.status(500).json({ error: "사용자 정보 수정에 실패했습니다." });
+  }
+});
+
 app.listen(port, () => {
   console.log(`서버 실행 중: http://localhost:${port}`);
 });
