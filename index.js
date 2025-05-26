@@ -167,6 +167,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// 글쓰기
 app.post("/postWrite", upload.single("files"), async (req, res) => {
   try {
     const { title, summary, content } = req.body;
@@ -192,6 +193,37 @@ app.post("/postWrite", upload.single("files"), async (req, res) => {
   } catch (err) {
     console.log("에러", err);
     return res.status(500).json({ error: "서버 에러" });
+  }
+});
+
+// 글 목록 조회 - 페이지네이션 추가
+app.get("/postlist", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 3;
+    const skip = page * limit;
+
+    // 총 게시물 수 조회
+    const total = await postModel.countDocuments();
+
+    // 페이지네이션 적용하여 게시물 조회
+    const posts = await postModel
+      .find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // 마지막 페이지 여부 확인
+    const hasMore = total > skip + posts.length;
+
+    res.json({
+      posts,
+      hasMore,
+      total,
+    });
+  } catch (err) {
+    console.error("게시물 조회 오류:", err);
+    res.status(500).json({ error: "게시물 조회에 실패했습니다." });
   }
 });
 
