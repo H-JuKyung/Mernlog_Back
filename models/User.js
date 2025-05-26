@@ -9,8 +9,18 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required: true,
+      // 카카오 로그인 사용자 - password X
+      required: function () {
+        return !this.kakaoId;
+      },
     },
+    // 카카오 ID
+    kakaoId: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
+    profileImage: String,
   },
   {
     timestamps: true,
