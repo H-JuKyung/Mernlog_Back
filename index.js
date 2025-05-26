@@ -50,15 +50,15 @@ const cookieOptions = {
 app.post("/register", async (req, res) => {
   try {
     console.log("----", req.body);
-    const { id, password } = req.body;
+    const { userId, password } = req.body;
 
-    const existingUser = await userModel.findOne({ id });
+    const existingUser = await userModel.findOne({ userId });
     if (existingUser) {
       return res.status(409).json({ error: "이미 존재하는 아이디입니다." });
     }
 
     const userDoc = new userModel({
-      id,
+      userId,
       password: bcrypt.hashSync(password, saltRounds),
     });
 
@@ -66,7 +66,7 @@ app.post("/register", async (req, res) => {
 
     res.status(201).json({
       msg: "회원가입 성공",
-      id: savedUser.id,
+      userId: savedUser.userId,
     });
   } catch (err) {
     console.log("회원가입 오류: ", err);
@@ -77,8 +77,8 @@ app.post("/register", async (req, res) => {
 // 로그인
 app.post("/login", async (req, res) => {
   try {
-    const { id, password } = req.body;
-    const userDoc = await userModel.findOne({ id });
+    const { userId, password } = req.body;
+    const userDoc = await userModel.findOne({ userId });
     if (!userDoc) {
       return res.status(401).json({ error: "없는 사용자입니다." });
     }
@@ -87,15 +87,15 @@ app.post("/login", async (req, res) => {
     if (!passOk) {
       return res.status(401).json({ error: "비밀번호가 틀렸습니다" });
     } else {
-      const { _id, id } = userDoc;
-      const payload = { id: _id, id };
+      const { _id, userId } = userDoc;
+      const payload = { id: _id, userId };
       const token = jwt.sign(payload, secretKey, {
         expiresIn: tokenLife,
       });
 
       res.cookie("token", token, cookieOptions).json({
         id: userDoc._id,
-        id,
+        userId,
       });
     }
   } catch (err) {
@@ -183,7 +183,7 @@ app.post("/postWrite", upload.single("files"), async (req, res) => {
       summary,
       content,
       cover: req.file ? req.file.path : null, // 파일 경로 저장
-      author: userInfo.id,
+      author: userInfo.userId,
     };
 
     await postModel.create(postData);
@@ -281,7 +281,7 @@ app.put("/post/:postId", upload.single("files"), async (req, res) => {
     }
 
     // 작성자 확인 (자신의 글만 수정 가능)
-    if (post.author !== userInfo.id) {
+    if (post.author !== userInfo.userId) {
       return res.status(403).json({ error: "자신의 글만 수정할 수 있습니다." });
     }
 
@@ -311,6 +311,42 @@ app.put("/post/:postId", upload.single("files"), async (req, res) => {
   } catch (err) {
     console.error("게시물 수정 오류:", err);
     res.status(500).json({ error: "게시물 수정에 실패했습니다." });
+  }
+});
+
+// 글 좋아요
+app.post("/like/:postId", async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    // JWT 토큰 인증 및 userId 추출
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).json({ message: "로그인 필요" });
+    }
+
+    const userInfo = jwt.verify(token, secretKey);
+    const userId = userInfo.userId;
+
+    const post = await postModel.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "게시물을 찾을 수 없습니다." });
+    }
+
+    const likeIndex = post.likes.findIndex((id) => id.toString() === userId);
+    if (likeIndex > -1) {
+      // 이미 좋아요 누른 상태 → 취소
+      post.likes.splice(likeIndex, 1);
+    } else {
+      // 좋아요 추가
+      post.likes.push(userId);
+    }
+
+    await post.save();
+    res.json(post);
+  } catch (error) {
+    console.error("좋아요 토글 기능 오류:", error);
+    res.status(500).json({ message: "서버 에러" });
   }
 });
 
