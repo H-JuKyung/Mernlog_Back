@@ -353,7 +353,7 @@ app.post("/like/:postId", async (req, res) => {
 // 댓글 관련 api
 import { commentModel } from "./model/comment.js";
 
-// 댓글 작성 API
+// 댓글 작성
 app.post("/comments", async (req, res) => {
   const { content, author, postId } = req.body;
 
@@ -368,6 +368,23 @@ app.post("/comments", async (req, res) => {
   } catch (error) {
     console.error("댓글 작성 오류:", error);
     res.status(500).json({ error: "댓글 작성에 실패했습니다." });
+  }
+});
+
+// 댓글 삭제
+app.delete("/comments/:commentId", async (req, res) => {
+  const { commentId } = req.params;
+
+  try {
+    const comment = await commentModel.findByIdAndDelete(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "댓글을 찾을 수 없습니다." });
+    }
+    // res.json(comment);
+    res.json({ message: "댓글이 삭제되었습니다." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "서버 에러" });
   }
 });
 
