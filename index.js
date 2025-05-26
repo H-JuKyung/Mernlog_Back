@@ -227,6 +227,36 @@ app.get("/postlist", async (req, res) => {
   }
 });
 
+// 글 상세 조회
+app.get("/post/:postId", async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const post = await postModel.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: "게시물을 찾을 수 없습니다." });
+    }
+    res.json(post);
+  } catch (err) {
+    console.error("게시물 상세 조회 오류:", err);
+    res.status(500).json({ error: "게시물 상세 조회에 실패했습니다." });
+  }
+});
+
+//글 삭제
+app.delete("/post/:postId", async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const post = await postModel.findByIdAndDelete(postId);
+    if (!post) {
+      return res.status(404).json({ error: "게시물을 찾을 수 없습니다." });
+    }
+    res.json({ message: "게시물이 삭제되었습니다." });
+  } catch (err) {
+    console.error("게시물 삭제 오류:", err);
+    res.status(500).json({ error: "게시물 삭제에 실패했습니다." });
+  }
+});
+
 app.listen(port, () => {
   console.log(`서버 실행 중: http://localhost:${port}`);
 });
