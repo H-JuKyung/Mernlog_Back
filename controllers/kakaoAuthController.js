@@ -58,7 +58,7 @@ export const kakaoCallback = async (req, res) => {
     if (!user) {
       // 새 사용자 생성 - kakaoId 필드 사용
       user = new User({
-        userId: `kakao_${nickname}_${Date.now().toString().slice(-4)}`, // 유니크하게 생성
+        userId: `${nickname}_${Date.now().toString().slice(-4)}`, // 유니크하게 생성
         kakaoId, // 카카오 ID 저장
         profileImage,
         // password 필드를 제공하지 않음
