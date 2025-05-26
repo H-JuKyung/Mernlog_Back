@@ -213,11 +213,23 @@ app.get("/postlist", async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // 각 포스트의 댓글 수 조회
+    const postsWithCommentCounts = await Promise.all(
+      posts.map(async (post) => {
+        const commentCount = await commentModel.countDocuments({
+          postId: post._id,
+        });
+        const postObject = post.toObject();
+        postObject.commentCount = commentCount;
+        return postObject;
+      })
+    );
+
     // 마지막 페이지 여부 확인
     const hasMore = total > skip + posts.length;
 
     res.json({
-      posts,
+      posts: postsWithCommentCounts,
       hasMore,
       total,
     });
@@ -235,7 +247,15 @@ app.get("/post/:postId", async (req, res) => {
     if (!post) {
       return res.status(404).json({ error: "게시물을 찾을 수 없습니다." });
     }
-    res.json(post);
+
+    // 댓글 수 조회
+    const commentCount = await commentModel.countDocuments({ postId });
+
+    // 응답 객체 생성
+    const postWithCommentCount = post.toObject();
+    postWithCommentCount.commentCount = commentCount;
+
+    res.json(postWithCommentCount);
   } catch (err) {
     console.error("게시물 상세 조회 오류:", err);
     res.status(500).json({ error: "게시물 상세 조회에 실패했습니다." });
