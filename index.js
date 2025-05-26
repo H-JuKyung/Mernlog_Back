@@ -350,6 +350,27 @@ app.post("/like/:postId", async (req, res) => {
   }
 });
 
+// 댓글 관련 api
+import { commentModel } from "./model/comment.js";
+
+// 댓글 작성 API
+app.post("/comments", async (req, res) => {
+  const { content, author, postId } = req.body;
+
+  try {
+    const newComment = await commentModel.create({
+      content,
+      author,
+      postId,
+    });
+
+    res.status(201).json(newComment);
+  } catch (error) {
+    console.error("댓글 작성 오류:", error);
+    res.status(500).json({ error: "댓글 작성에 실패했습니다." });
+  }
+});
+
 app.listen(port, () => {
   console.log(`서버 실행 중: http://localhost:${port}`);
 });
