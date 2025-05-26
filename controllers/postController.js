@@ -34,6 +34,8 @@ export const getPosts = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const userId = req.user?.id || null; // optionalAuthenticateToken 사용 시
+
     // 각 포스트의 댓글 수 조회
     const postsWithCommentCounts = await Promise.all(
       posts.map(async (post) => {
@@ -42,6 +44,10 @@ export const getPosts = async (req, res) => {
         });
         const postObject = post.toObject();
         postObject.commentCount = commentCount;
+        postObject.likesCount = post.likes.length;
+        postObject.isLiked = userId
+          ? post.likes.some((likeId) => likeId.toString() === userId)
+          : false;
         return postObject;
       })
     );
@@ -70,9 +76,19 @@ export const getPostById = async (req, res) => {
     // 댓글 수 조회
     const commentCount = await Comment.countDocuments({ postId });
 
+    // 로그인한 사용자 ID
+    const userId = req.user?.id || null;
+
+    // 현재 사용자가 좋아요를 눌렀는지 판단
+    const isLiked = userId
+      ? post.likes.some((likeId) => likeId.toString() === userId)
+      : false;
+
     // 응답 객체 생성
     const postWithCommentCount = post.toObject();
     postWithCommentCount.commentCount = commentCount;
+    postWithCommentCount.likesCount = post.likes.length;
+    postWithCommentCount.isLiked = isLiked;
 
     res.json(postWithCommentCount);
   } catch (err) {
@@ -153,7 +169,10 @@ export const toggleLike = async (req, res) => {
     }
 
     await post.save();
-    res.json(post);
+
+    // 좋아요 갱신 후 상태 반환
+    const isLiked = post.likes.some((id) => id.toString() === userId);
+    res.json({ likesCount: post.likes.length, isLiked });
   } catch (error) {
     console.error("좋아요 토글 기능 오류:", error);
     res.status(500).json({ message: "서버 에러" });
