@@ -32,6 +32,27 @@ export const register = async (req, res) => {
   }
 };
 
+export const checkUserIdDuplicate = async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res
+      .status(400)
+      .json({ error: "userId query parameter is required" });
+  }
+
+  try {
+    const existingUser = await User.findOne({ userId });
+    if (existingUser) {
+      return res.json({ isAvailable: false }); // 중복됨
+    } else {
+      return res.json({ isAvailable: true }); // 사용 가능
+    }
+  } catch (err) {
+    console.error("아이디 중복 확인 오류:", err);
+    res.status(500).json({ error: "서버 오류" });
+  }
+};
+
 export const login = async (req, res) => {
   try {
     const { userId, password } = req.body;
