@@ -23,10 +23,16 @@ import { errorHandler } from "./utils/errorHandler.js";
 const app = express();
 const port = process.env.PORT || 4000;
 
+// 🌐 배포/개발 환경에 따라 origin 분기
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? ["https://mernlog-front.vercel.app"] // Vercel 배포 주소
+    : [process.env.FRONTEND_URL]; // 로컬 개발 주소
+
 // CORS 설정
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, "https://mernlog-front.vercel.app"],
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -45,6 +51,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // 정적 파일 접근 시 CORS 오류를 방지하기 위한 설정
 app.get("/uploads/:filename", (req, res) => {
   const { filename } = req.params;
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigins[0]);
   res.sendFile(path.join(__dirname, "uploads", filename));
 });
 
